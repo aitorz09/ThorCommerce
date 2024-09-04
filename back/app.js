@@ -9,6 +9,7 @@ import { User } from './src/models/Users.js';
 import { Category } from './src/models/Categories.js';
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt';
+import Stripe from 'stripe';
 import { log } from 'console';
 
 
@@ -30,36 +31,79 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
-
+const page = 2; // La página que quieres obtener
+const limit = 10; // Número de documentos por página
+const offset = (page - 1) * limit;
 app.get('/', (req, res) => {
   res.send('Hello World');
 });
+app.get('/config', (req, res) => {
+  res.send({ publicKey: process.env.STRIPE_PUB_TEST });
+});
+app.post('/create-payment-intent', async (req, res, next) => {
+  try {
+    console.log(req.body.amount)
+     const paymentIntent = await Stripe(process.env.STRIPE_SECRET_TEST).paymentIntents.create({
+       currency: "eur",
+       amount: req.body.amount,
+       automatic_payment_methods: {
+         enabled: true,
+       },
+     });
 
+    res.send({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    next(error);
+  }
+});
 // Sirve las imágenes desde el directorio uploads/images
 app.use('/images', express.static( './src/uploads/images'));
-app.get('/products/:id',async (req,res,next)=>{
+app.get('/products/:id', async (req, res, next) => {
   try {
-    const { id } = req.params
-    const product = await Product.find({id})
+    const { id } = req.params; // Obtiene el id de los parámetros de la ruta
+    console.log(id);
+
+    // Busca el producto por su id usando findById
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ code: "404", message: "Producto no encontrado" });
+    }
+
+    // Respuesta con el producto encontrado
     res.json({
-      code:"200",
-      product:product
-    })
+      code: "200",
+      product: product
+    });
   } catch (error) {
-    next(error)
+    next(error); // Manejo de errores
   }
-})
-app.get('/products',async (req,res,next)=>{
+});
+app.get('/products', async (req, res, next) => {
   try {
+    // Obteniendo los parámetros de paginación desde la query string (con valores predeterminados)
+    const page = parseInt(req.query.page) || 1;  // Página actual, por defecto 1
+    const limit = parseInt(req.query.limit) || 10; 
+    const offset = (page - 1) * limit; 
+
+   
     const products = await Product.find()
+      .skip(offset) 
+      .limit(limit);
+
+
     res.json({
-      code:"200",
-      products:products
-    })
+      code: 200,  
+      products: products,
+      page: page,
+      limit: limit,
+      total: products.length // Puedes agregar un total si estás interesado
+    });
   } catch (error) {
-    next(error)
+    next(error); 
   }
-})
+});
+
 app.get('/products/category/:category',async (req,res,next)=>{
   try {
     const { category } = req.params
@@ -118,6 +162,11 @@ app.post('/register', async (req, res, next) => {
       verified: false,
       regCode: "TODO",
       recPassCode: "TODO",
+      adress: req.body.adress,
+      city: req.body.city,
+      country: req.body.country,
+      postalcode: req.body.postalcode,
+      phone: req.body.phone,
       date: new Date()
     });
     
@@ -159,7 +208,7 @@ app.post('/login', async (req, res, next) => {
       return res.status(401).json({ message: 'Contraseña incorrecta' });
     }
 
-    const token = jwt.sign({ email: user.email, id: user._id }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ email: user.email, id: user._id }, JWT_SECRET, { expiresIn: '1d' });
 
     res.json({
       status: 200,
@@ -203,6 +252,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     error: err.message || 'Internal Server Error',
   });
+});
+app.use((err, req, res, next) => {
+
+  if (!res.headersSent) { // Verifica si los encabezados ya fueron enviados
+    res.status(500).json({
+      error: err.message || 'Internal Server Error',
+    });
+  } else {
+    next(err); // Si ya fueron enviados, delega al siguiente middleware
+  }
 });
 app.listen(PORT, () => {
   console.log(`Server is listening on ${PORT}`);

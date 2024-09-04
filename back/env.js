@@ -18,6 +18,10 @@ const {
     SMTP_PASS,
     URL_FRONT,
     MongooseURL,
+    STRIPE_PUB_KEY,
+    STRIPE_PUB_TEST,
+    STRIPE_SECRET_TEST,
+    STRIPE_SECRET_KEY
 } = process.env;
 
 export {
@@ -34,6 +38,10 @@ export {
     SMTP_USER,
     SMTP_PASS,
     MongooseURL,
+    STRIPE_PUB_KEY,
     VITE_URL_FRONT,
+    STRIPE_SECRET_KEY,
+    STRIPE_PUB_TEST,
+    STRIPE_SECRET_TEST,
     URL_FRONT,
 };
