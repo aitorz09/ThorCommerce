@@ -9,12 +9,15 @@ export const Hombre = () => {
   const [products, setProducts] = useState([]);
   const url = "http://localhost:3000";
   interface Product {
-    id: number;
-    images: string;
-    new_price:number;
-    old_price:number;
-    name:string;
-    description:string;
+    _id: string;
+    images: string[];
+    new_price: number;
+    old_price: number;
+    name: string;
+    description: string;
+    category:string;
+    sizes: string[];
+    available: boolean;
   }
   useEffect(() => {
     const fetchData = async () => {
@@ -39,9 +42,9 @@ export const Hombre = () => {
           <section className=' mx-6 place-items-center grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 '>
           {products.map((product:Product) =>{
             return (
-              <div key={product.id} className='flex flex-col gap-2 my-10 place-items-center' >
+              <div key={product._id} className='flex flex-col gap-2 my-10 place-items-center' >
                   <h3 className='text-xl text-center text-wrap'>{product.name}</h3>
-                <img className='w-60 rounded-xl' src={`${url}/images/${product.images}`} alt="" />
+                  <Link to={`/product/${product._id}`}><img className='w-60 rounded-xl' src={`${url}/images/${product.images}`} alt="" /></Link>
                 <div className='flex gap-2 place-items-center'>
                   <p className='text-xl'>{product.new_price}$ </p>
                   <p className='border bg-red-500/40 text-sm text-black/60 line-through'>{product.old_price}$</p>
